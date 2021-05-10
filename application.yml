@@ -1,0 +1,93 @@
+server:
+  port: 9090
+
+
+spring:
+  cloud:
+    stream:
+      bindings:
+        input:
+          destination: sample-topic
+          group: sample-group
+      default-binder: kafka
+      kafka:
+        binder:
+          autoCreateTopics: false
+        bindings:
+          input:
+            consumer:
+              autoCommitOffset: false
+              
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: com.keshri.resilience4jdemo
+    listener:
+      ack-mode: manual
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      
+
+#Circuit Breaker Congiguration
+resilience4j:
+  circuitbreaker:
+    instances:
+      externalService:
+        # When the failure rate is equal or greater than the threshold the 
+        #CircuitBreaker transitions to open and starts short-circuiting calls.
+        failure-rate-threshold: 80
+        # last slidingWindowSize calls are recorded and aggregated
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        #minimum number of calls which are required 
+        #before the CircuitBreaker can calculate the error rate or slow call rate.
+        minimum-number-of-calls: 5
+        #permits a configurable number of calls to see if the backend is still unavailable or has become available again
+        permitted-number-of-calls-in-half-open-state: 2
+        #time that the CircuitBreaker should wait before transitioning from open to half-open.
+        wait-duration-in-open-state: 6000
+        #list of exceptions that are ignored and neither count as a failure nor success.
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+        #CircuitBreaker will automatically transition from open to half-open state
+        #and no call is needed to trigger the transition.#
+        automatic-transition-from-open-to-half-open-enabled: true
+    circuitBreakerAspectOrder: 2
+        
+        
+          
+#Retry Congiguration          
+  retry:
+    instances:
+      externalService:
+        max-attempts: 5
+        wait-duration: 1000
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+        #CircuitBreaker rejects calls with a CallNotPermittedException when it is OPEN.
+        ignore-exceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+    retryAspectOrder: 1 
+
+kafka:
+  topic:
+    name: sample-topic
+
+external:
+  downStream:
+    service:
+      name: externalService
+      url: http://localhost:9091/downstream/v1/api/publish
+logging:
+  level:
+    org.apache: OFF
+    kafka: OFF
+
