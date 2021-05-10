@@ -1,0 +1,66 @@
+Resilient Kafka Consumer using Resilience4j  Retry & CircuitBreaker Pattern
+
+This page documetns the Resilience4j Retry & CircuitBreaker POC.
+
+Basically this POC listens to the Kafka Topic and call the downstream service api using the Kafka message as payload.
+If any failures occures while calling downstream service it can retry configurable amount of times.
+Even after retrying if it failes then CircuitBreaker will be enabled to handle the failure.
+It Acknowledge to kafka broker only if the downstream api call is success.
+if the 
+
+Resilience4j is a lightweight, easy-to-use fault-tolerence library inspired by Netflix Hystrix.
+
+Fault Tolerence - It refers to ability of the system to gracefully handles the failure and continue
+				  operating without interruption when one or more of it's component failed.
+				  
+
+Resilience4j Retry - One of the pattren inside resilience4j library.
+If we know that a failure lasts only for a short time then we may re-attempt to recover form it.
+One such strategy is the retry pattren where we retry a call to a service for a configurable number ogf attempts.
+
+Resilience4j Circuit Breaker - One of the pattren inside resilience4j library.
+The CircuitBreaker pattern can prevent an application from repeatedly trying to call remote service
+that's likely to fail.The Circuit Breaker pattern also enables an application to detect 
+whether the fault has been resolved. If the problem appears to have been fixed, 
+the application can try to invoke the operation. Technivally it prevents the system from cascading failures.
+
+If we have system where lot of microservices communicating with each other and anyone 
+of the microservice is slow among them or not running then it can cause failure in all the communicating 
+systems. This is nothing but it referred as Cascading failure.
+
+
+BitBucket Repository
+
+
+Dependencies
+//resilience4j
+implementation "io.github.resilience4j:resilience4j-spring-boot2:1.7.0"
+implementation "org.springframework.boot:spring-boot-starter-actuator"
+implementation "org.springframework.boot:spring-boot-starter-aop"
+
+Note: Updated below version must needed
+Spring boot version = 2.4.5
+Spring Dependency Management version= 1.0.11.RELEASE
+Spring Cloud Version = Hoxton.SR11
+
+
+Retry Configuration details:
+	max-attempts:  Specifies number of retry attempts
+	wait-duration: Fixed wait duration between retry attempts
+	retry-exceptions: List of Throwable classes that are recorded as failure and thus are retrired
+	ignore-exceptions: List of Throwable classes that are ignored and thus are not retrired
+
+CircuitBreaker Configuration details:
+	failure-rate-threshold : When the failure rate is equal or greater than the threshold the
+							 CircuitBreaker transitions to open and starts short-circuiting calls.
+	sliding-window-type: Sliding window type to store and aggregate the outcome of calls.
+	sliding-window-size: The size of the sliding window which is used to record the outcome of calls.
+	minimum-number-of-calls: Minimum number of calls which are required before the 
+							 CircuitBreaker can calculate the error rate or slow call rate.
+	permitted-number-of-calls-in-half-open-state: permits a configurable number of calls to see if the backend is still unavailable 
+												  or has become available again
+	wait-duration-in-open-state: Time that the CircuitBreaker should wait before transitioning from open to half-open.
+	
+	ignore-exceptions: list of exceptions that are ignored and neither count as a failure nor success.
+	automatic-transition-from-open-to-half-open-enabled: CircuitBreaker will automatically transition from open to half-open state
+														and no call is needed to trigger the transition.
